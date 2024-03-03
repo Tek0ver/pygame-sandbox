@@ -101,6 +101,7 @@ class Turret(pygame.sprite.Sprite):
                 self.rect.centerx + self.vector.x * self.lenght,
                 self.rect.centery + self.vector.y * self.lenght)
             group_projectiles.add(Bullet(spawn_point, self.vector))
+            joysticks[0].rumble(1,0,250)
 
 
 
