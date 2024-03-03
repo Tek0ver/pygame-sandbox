@@ -9,6 +9,7 @@ clock = pygame.Clock()
 
 screen = pygame.display.set_mode((1000,1000))
 
+joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
 
 class Tank(pygame.sprite.Sprite):
 
@@ -91,11 +92,16 @@ class Turret(pygame.sprite.Sprite):
 
         self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
 
-        if pygame.mouse.get_pressed()[0] and self.timer.check():
+        if pygame.mouse.get_pressed()[0] or joysticks[0].get_button(0):
+            self.shoot()            
+
+    def shoot(self):
+        if self.timer.check():
             spawn_point = (
                 self.rect.centerx + self.vector.x * self.lenght,
                 self.rect.centery + self.vector.y * self.lenght)
             group_projectiles.add(Bullet(spawn_point, self.vector))
+
 
 
 class Bullet(pygame.sprite.Sprite):
