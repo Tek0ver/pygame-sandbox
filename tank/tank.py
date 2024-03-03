@@ -10,6 +10,7 @@ clock = pygame.Clock()
 screen = pygame.display.set_mode((1000,1000))
 
 joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+joystick_deadzone = 0.5
 
 class Tank(pygame.sprite.Sprite):
 
@@ -45,13 +46,13 @@ class Tank(pygame.sprite.Sprite):
 
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_UP] or joysticks[0].get_axis(1) < -joystick_deadzone:
             self.rect.center += self.vector*self.speed
-        if keys[pygame.K_DOWN]:
+        if keys[pygame.K_DOWN] or joysticks[0].get_axis(1) > joystick_deadzone:
             self.rect.center -= self.vector*self.speed
-        if keys[pygame.K_LEFT]:
+        if keys[pygame.K_LEFT]  or joysticks[0].get_axis(0) < -joystick_deadzone:
             self.vector = self.vector.rotate(-self.rotation_speed)
-        if keys[pygame.K_RIGHT]:
+        if keys[pygame.K_RIGHT] or joysticks[0].get_axis(0) > joystick_deadzone:
             self.vector = self.vector.rotate(self.rotation_speed)
 
 
