@@ -105,7 +105,7 @@ class Turret(pygame.sprite.Sprite):
         else:
             self.vector = self.vector.rotate(self.vector.angle_to(controller_vector))
 
-        if pygame.mouse.get_pressed()[0] or controllers[0].get_button(pygame.CONTROLLER_BUTTON_A):
+        if pygame.mouse.get_pressed()[0] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
             self.shoot()            
 
     def shoot(self):
