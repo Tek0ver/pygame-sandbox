@@ -95,8 +95,15 @@ class Turret(pygame.sprite.Sprite):
         mouse_vector = pygame.math.Vector2(
             mouse_cursor[0] - self.rect.centerx,
             mouse_cursor[1] - self.rect.centery)
-
-        self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
+        
+        controller_vector = pygame.math.Vector2(
+            controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
+            controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
+        
+        if controller_vector.magnitude() < joystick_deadzone:
+            self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
+        else:
+            self.vector = self.vector.rotate(self.vector.angle_to(controller_vector))
 
         if pygame.mouse.get_pressed()[0] or controllers[0].get_button(pygame.CONTROLLER_BUTTON_A):
             self.shoot()            
