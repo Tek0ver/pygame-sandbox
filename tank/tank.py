@@ -2,6 +2,7 @@ from typing import Any
 import pygame
 from sys import exit
 from time import time
+import pygame._sdl2.controller
 
 pygame.init()
 
@@ -9,8 +10,12 @@ clock = pygame.Clock()
 
 screen = pygame.display.set_mode((1000,1000))
 
-joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
-joystick_deadzone = 0.5
+pygame._sdl2.controller.init()
+
+controllers = [pygame._sdl2.controller.Controller(x) for x in range(pygame._sdl2.controller.get_count())]
+
+joystick_deadzone = 15000
+
 
 class Tank(pygame.sprite.Sprite):
 
@@ -46,13 +51,13 @@ class Tank(pygame.sprite.Sprite):
 
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_UP] or joysticks[0].get_axis(1) < -joystick_deadzone:
+        if keys[pygame.K_UP] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) < -joystick_deadzone:
             self.rect.center += self.vector*self.speed
-        if keys[pygame.K_DOWN] or joysticks[0].get_axis(1) > joystick_deadzone:
+        if keys[pygame.K_DOWN] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) > joystick_deadzone:
             self.rect.center -= self.vector*self.speed
-        if keys[pygame.K_LEFT]  or joysticks[0].get_axis(0) < -joystick_deadzone:
+        if keys[pygame.K_LEFT]  or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) < -joystick_deadzone:
             self.vector = self.vector.rotate(-self.rotation_speed)
-        if keys[pygame.K_RIGHT] or joysticks[0].get_axis(0) > joystick_deadzone:
+        if keys[pygame.K_RIGHT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) > joystick_deadzone:
             self.vector = self.vector.rotate(self.rotation_speed)
 
 
@@ -93,7 +98,7 @@ class Turret(pygame.sprite.Sprite):
 
         self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
 
-        if pygame.mouse.get_pressed()[0] or joysticks[0].get_button(0):
+        if pygame.mouse.get_pressed()[0] or controllers[0].get_button(pygame.CONTROLLER_BUTTON_A):
             self.shoot()            
 
     def shoot(self):
@@ -102,7 +107,7 @@ class Turret(pygame.sprite.Sprite):
                 self.rect.centerx + self.vector.x * self.lenght,
                 self.rect.centery + self.vector.y * self.lenght)
             group_projectiles.add(Bullet(spawn_point, self.vector))
-            joysticks[0].rumble(1,0,250)
+            controllers[0].rumble(1,0,250)
 
 
 
