@@ -13,6 +13,10 @@ screen = pygame.display.set_mode((1000,1000))
 pygame._sdl2.controller.init()
 
 controllers = [pygame._sdl2.controller.Controller(x) for x in range(pygame._sdl2.controller.get_count())]
+if len(controllers) == 0:
+    controller_mode = False
+else:
+    controller_mode = True
 
 joystick_deadzone = 15000
 
@@ -51,14 +55,24 @@ class Tank(pygame.sprite.Sprite):
 
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_UP] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) < -joystick_deadzone:
-            self.rect.center += self.vector*self.speed
-        if keys[pygame.K_DOWN] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) > joystick_deadzone:
-            self.rect.center -= self.vector*self.speed
-        if keys[pygame.K_LEFT]  or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) < -joystick_deadzone:
-            self.vector = self.vector.rotate(-self.rotation_speed)
-        if keys[pygame.K_RIGHT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) > joystick_deadzone:
-            self.vector = self.vector.rotate(self.rotation_speed)
+        if controller_mode:
+            if keys[pygame.K_UP] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) < -joystick_deadzone:
+                self.rect.center += self.vector*self.speed
+            if keys[pygame.K_DOWN] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) > joystick_deadzone:
+                self.rect.center -= self.vector*self.speed
+            if keys[pygame.K_LEFT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) < -joystick_deadzone:
+                self.vector = self.vector.rotate(-self.rotation_speed)
+            if keys[pygame.K_RIGHT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) > joystick_deadzone:
+                self.vector = self.vector.rotate(self.rotation_speed)
+        else:
+            if keys[pygame.K_UP]:
+                self.rect.center += self.vector*self.speed
+            if keys[pygame.K_DOWN]:
+                self.rect.center -= self.vector*self.speed
+            if keys[pygame.K_LEFT]:
+                self.vector = self.vector.rotate(-self.rotation_speed)
+            if keys[pygame.K_RIGHT]:
+                self.vector = self.vector.rotate(self.rotation_speed)
 
 
 class Turret(pygame.sprite.Sprite):
@@ -96,17 +110,21 @@ class Turret(pygame.sprite.Sprite):
             mouse_cursor[0] - self.rect.centerx,
             mouse_cursor[1] - self.rect.centery)
         
-        controller_vector = pygame.math.Vector2(
-            controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
-            controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
+        if controller_mode:
+            controller_vector = pygame.math.Vector2(
+                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
+                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
         
-        if controller_vector.magnitude() < joystick_deadzone:
-            self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
-        else:
-            self.vector = self.vector.rotate(self.vector.angle_to(controller_vector))
+            if controller_vector.magnitude() < joystick_deadzone:
+                self.vector = self.vector.rotate(self.vector.angle_to(controller_vector))
 
-        if pygame.mouse.get_pressed()[0] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
-            self.shoot()            
+            if controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
+                self.shoot()
+
+        else:
+            self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
+            if pygame.mouse.get_pressed()[0]:
+                self.shoot()            
 
     def shoot(self):
         if self.timer.check():
@@ -114,7 +132,9 @@ class Turret(pygame.sprite.Sprite):
                 self.rect.centerx + self.vector.x * self.lenght,
                 self.rect.centery + self.vector.y * self.lenght)
             group_projectiles.add(Bullet(spawn_point, self.vector))
-            controllers[0].rumble(1,0,250)
+
+            if controller_mode:
+                controllers[0].rumble(1,0,250)
 
 
 
