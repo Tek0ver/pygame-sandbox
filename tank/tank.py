@@ -187,6 +187,16 @@ while True:
 
     group_tank.update()
     group_projectiles.update()
+        
+    for tank in group_tank.sprites():
+        if tank.rect.x < 0:
+            tank.rect.x = 0
+        elif tank.rect.x > screen.get_width() - tank.rect.width:
+            tank.rect.x = screen.get_width() - tank.rect.width
+        if tank.rect.y < 0:
+            tank.rect.y = 0
+        elif tank.rect.y > screen.get_height() - tank.rect.height:
+            tank.rect.y = screen.get_height() - tank.rect.height
 
     group_tank.draw(screen)
     group_turret.draw(screen)
