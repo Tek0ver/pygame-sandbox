@@ -198,6 +198,16 @@ while True:
         elif tank.rect.y > screen.get_height() - tank.rect.height:
             tank.rect.y = screen.get_height() - tank.rect.height
 
+    for projectile in group_projectiles.sprites():
+        if projectile.rect.centerx < 0:
+            projectile.kill()
+        elif projectile.rect.centerx > screen.get_width():
+            projectile.kill()
+        if projectile.rect.centery < 0:
+            projectile.kill()
+        elif projectile.rect.centery > screen.get_height():
+            projectile.kill()
+
     group_tank.draw(screen)
     group_turret.draw(screen)
     group_projectiles.draw(screen)
