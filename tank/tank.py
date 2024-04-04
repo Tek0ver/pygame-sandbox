@@ -55,6 +55,7 @@ class Tank(pygame.sprite.Sprite):
 
         keys = pygame.key.get_pressed()
 
+        # move
         if controller_mode:
             if keys[pygame.K_UP] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) < -joystick_deadzone:
                 self.rect.center += self.vector*self.speed
@@ -74,6 +75,27 @@ class Tank(pygame.sprite.Sprite):
             if keys[pygame.K_RIGHT]:
                 self.vector = self.vector.rotate(self.rotation_speed)
 
+        # turret
+        mouse_cursor = pygame.mouse.get_pos()
+        mouse_vector = pygame.math.Vector2(
+            mouse_cursor[0] - self.turret.rect.centerx,
+            mouse_cursor[1] - self.turret.rect.centery)
+        
+        if controller_mode:
+            controller_vector = pygame.math.Vector2(
+                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
+                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
+        
+            if controller_vector.magnitude() < joystick_deadzone:
+                self.turret.vector = self.turret.vector.rotate(self.turret.vector.angle_to(controller_vector))
+
+            if controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
+                self.turret.shoot()
+
+        else:
+            self.turret.vector = self.turret.vector.rotate(self.turret.vector.angle_to(mouse_vector))
+            if pygame.mouse.get_pressed()[0]:
+                self.turret.shoot()   
 
 class Turret(pygame.sprite.Sprite):
 
@@ -94,37 +116,13 @@ class Turret(pygame.sprite.Sprite):
     def update(self, pos):
 
         self.rect.center = pos
-        self.get_input()
         self.animation()
 
     def animation(self):
 
         rotation = self.vector.angle_to(self.vector_base)
         self.image = pygame.transform.rotate(self.image_source, rotation)
-        self.rect = self.image.get_frect(center=self.rect.center)
-
-    def get_input(self):
-
-        mouse_cursor = pygame.mouse.get_pos()
-        mouse_vector = pygame.math.Vector2(
-            mouse_cursor[0] - self.rect.centerx,
-            mouse_cursor[1] - self.rect.centery)
-        
-        if controller_mode:
-            controller_vector = pygame.math.Vector2(
-                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
-                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
-        
-            if controller_vector.magnitude() < joystick_deadzone:
-                self.vector = self.vector.rotate(self.vector.angle_to(controller_vector))
-
-            if controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
-                self.shoot()
-
-        else:
-            self.vector = self.vector.rotate(self.vector.angle_to(mouse_vector))
-            if pygame.mouse.get_pressed()[0]:
-                self.shoot()            
+        self.rect = self.image.get_frect(center=self.rect.center)        
 
     def shoot(self):
         if self.timer.check():
@@ -135,7 +133,6 @@ class Turret(pygame.sprite.Sprite):
 
             if controller_mode:
                 controllers[0].rumble(1,0,250)
-
 
 
 class Bullet(pygame.sprite.Sprite):
