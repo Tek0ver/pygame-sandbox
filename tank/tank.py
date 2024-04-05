@@ -38,6 +38,7 @@ class Tank(pygame.sprite.Sprite):
 
         self.speed = 3
         self.rotation_speed = 1
+        self.turret_speed = 2
 
     def update(self):
 
@@ -51,6 +52,27 @@ class Tank(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.image_source, rotation)
         self.rect = self.image.get_frect(center=self.rect.center)
 
+    def move(self, dir: str):
+
+        if dir == 'forward':
+            self.rect.center += self.vector*self.speed
+        elif dir == 'backward':
+            self.rect.center -= self.vector*self.speed
+
+    def turn(self, dir: str):
+
+        if dir == 'pos':
+            self.vector = self.vector.rotate(-self.rotation_speed)
+        elif dir == 'neg':
+            self.vector = self.vector.rotate(self.rotation_speed)
+
+    def turn_turret(self, dir:str):
+        
+        if dir == 'pos':
+            self.turret.vector.rotate_ip(- self.turret_speed)
+        elif dir == 'neg':
+            self.turret.vector.rotate_ip(self.turret_speed)
+
     def get_input(self):
 
         keys = pygame.key.get_pressed()
@@ -58,52 +80,70 @@ class Tank(pygame.sprite.Sprite):
         # move
         if controller_mode:
             if keys[pygame.K_UP] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) < -joystick_deadzone:
-                self.rect.center += self.vector*self.speed
+                self.move('forward')
             if keys[pygame.K_DOWN] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTY) > joystick_deadzone:
-                self.rect.center -= self.vector*self.speed
+                self.move('backward')
             if keys[pygame.K_LEFT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) < -joystick_deadzone:
-                self.vector = self.vector.rotate(-self.rotation_speed)
+                self.turn('pos')
             if keys[pygame.K_RIGHT] or controllers[0].get_axis(pygame.CONTROLLER_AXIS_LEFTX) > joystick_deadzone:
-                self.vector = self.vector.rotate(self.rotation_speed)
+                self.turn('neg')
         else:
             if keys[pygame.K_UP]:
-                self.rect.center += self.vector*self.speed
+                self.move('forward')
             if keys[pygame.K_DOWN]:
-                self.rect.center -= self.vector*self.speed
+                self.move('backward')
             if keys[pygame.K_LEFT]:
-                self.vector = self.vector.rotate(-self.rotation_speed)
+                self.turn('pos')
             if keys[pygame.K_RIGHT]:
-                self.vector = self.vector.rotate(self.rotation_speed)
-
-        # turret
-        mouse_cursor = pygame.mouse.get_pos()
-        mouse_vector = pygame.math.Vector2(
-            mouse_cursor[0] - self.turret.rect.centerx,
-            mouse_cursor[1] - self.turret.rect.centery)
-        
-        if controller_mode:
-            controller_vector = pygame.math.Vector2(
-                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
-                controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
-        
-            if controller_vector.magnitude() < joystick_deadzone:
-                self.turret.vector = self.turret.vector.rotate(self.turret.vector.angle_to(controller_vector))
-
-            if controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
+                self.turn('neg')
+            if keys[pygame.K_q]:
+                self.turn_turret('pos')
+            if keys[pygame.K_d]:
+                self.turn_turret('neg')
+            if keys[pygame.K_SPACE]:
                 self.turret.shoot()
 
-        else:
-            self.turret.vector = self.turret.vector.rotate(self.turret.vector.angle_to(mouse_vector))
-            if pygame.mouse.get_pressed()[0]:
-                self.turret.shoot()   
+        # # turret
+        # mouse_cursor = pygame.mouse.get_pos()
+        # mouse_vector = pygame.math.Vector2(
+        #     mouse_cursor[0] - self.turret.rect.centerx,
+        #     mouse_cursor[1] - self.turret.rect.centery)
+        
+        # if controller_mode:
+        #     controller_vector = pygame.math.Vector2(
+        #         controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
+        #         controllers[0].get_axis(pygame.CONTROLLER_AXIS_RIGHTY))
+        
+        #     if controller_vector.magnitude() < joystick_deadzone:
+        #         # self.turn_turret(controller_vector)
+        #         pass
+
+        #     if controllers[0].get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) > 10000:
+        #         self.turret.shoot()
+
+        # else:
+        #     # self.turn_turret(mouse_vector)
+        #     self.turn_turret('pos')
+        #     if pygame.mouse.get_pressed()[0]:
+        #         self.turret.shoot()   
+
+
+class AiTank(Tank):
+
+    def __init__(self, pos):
+        super().__init__(pos)
+
+    def get_input(self):
+        pass
+
 
 class Turret(pygame.sprite.Sprite):
 
     def __init__(self, pos, vector:pygame.math.Vector2):
         super().__init__()
 
-        self.vector_base = vector
-        self.vector = self.vector_base
+        self.vector_base = pygame.math.Vector2(vector)
+        self.vector = pygame.math.Vector2(self.vector_base)
 
         self.image_source = pygame.image.load("turret.png").convert_alpha()
         self.image = self.image_source
@@ -146,7 +186,7 @@ class Bullet(pygame.sprite.Sprite):
 
         group_projectiles.add(self)
 
-        self.vector = vector
+        self.vector = pygame.math.Vector2(vector)
         self.speed = 10
 
     def update(self):
@@ -169,8 +209,8 @@ class Timer():
         return False
 
 
-group_tank = pygame.sprite.GroupSingle()
-group_turret = pygame.sprite.GroupSingle()
+group_tank = pygame.sprite.Group()
+group_turret = pygame.sprite.Group()
 group_projectiles = pygame.sprite.Group()
 
 while True:
@@ -181,7 +221,8 @@ while True:
             exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_s:
-                group_tank.add(Tank((screen.get_width()/2, screen.get_height()/2)))
+                group_tank.add(AiTank((screen.get_width()/5, screen.get_height()/5)))
+                group_tank.add(Tank((screen.get_width()*(4/5), screen.get_height()*(4/5))))
 
     screen.fill("grey")
 
