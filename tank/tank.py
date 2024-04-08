@@ -3,6 +3,7 @@ import pygame
 from sys import exit
 from time import time
 import pygame._sdl2.controller
+from random import choice
 
 pygame.init()
 
@@ -133,8 +134,24 @@ class AiTank(Tank):
     def __init__(self, pos):
         super().__init__(pos)
 
+        self.possible_actions = [
+            (self.move, ('forward')),
+            (self.move, ('backward')),
+            (self.turn, ('pos')),
+            (self.turn, ('neg')),
+            (self.turn_turret, ('pos')),
+            (self.turn_turret, ('neg')),
+            (self.turret.shoot, ()),
+        ]
+
     def get_input(self):
-        pass
+        
+        action = choice(self.possible_actions)
+
+        if action[1]:
+            action[0](action[1])
+        else:
+            action[0]()
 
 
 class Turret(pygame.sprite.Sprite):
