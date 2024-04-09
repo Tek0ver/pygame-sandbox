@@ -24,22 +24,32 @@ joystick_deadzone = 15000
 
 class Tank(pygame.sprite.Sprite):
 
-    def __init__(self, pos):
+    def __init__(self, group_turret, group_projectiles, pos, orientation):
         super().__init__()
+
+        self.initial_pos = pos
+        self.initial_orientation = orientation
 
         self.image_source = pygame.image.load("tank.png").convert_alpha()
         self.image = self.image_source
-        self.rect = self.image.get_frect(center=pos)
 
-        self.vector_base = pygame.math.Vector2(-1,0)
-        self.vector = self.vector_base
+        self.reset()
 
-        self.turret = Turret(self.rect.center, self.vector_base)
+        self.turret = Turret(self.rect.center, self.initial_orientation)
         group_turret.add(self.turret)
+
+        self.timer = Timer(0.5)
+
+        self.group_projectiles = group_projectiles
 
         self.speed = 3
         self.rotation_speed = 1
         self.turret_speed = 2
+
+    def reset(self):
+
+        self.rect = self.image.get_frect(center=self.initial_pos)
+        self.vector = self.initial_orientation
 
     def update(self):
 
@@ -49,7 +59,7 @@ class Tank(pygame.sprite.Sprite):
 
     def animation(self):
 
-        rotation = self.vector.angle_to(self.vector_base)
+        rotation = self.vector.angle_to(pygame.math.Vector2(-1,0))
         self.image = pygame.transform.rotate(self.image_source, rotation)
         self.rect = self.image.get_frect(center=self.rect.center)
 
@@ -73,6 +83,16 @@ class Tank(pygame.sprite.Sprite):
             self.turret.vector.rotate_ip(- self.turret_speed)
         elif dir == 'neg':
             self.turret.vector.rotate_ip(self.turret_speed)
+
+    def shoot(self):
+        if self.timer.check():
+            spawn_point = (
+                self.turret.rect.centerx + self.turret.vector.x * self.turret.lenght,
+                self.turret.rect.centery + self.turret.vector.y * self.turret.lenght)
+            self.group_projectiles.add(Bullet(spawn_point, self.turret.vector))
+
+            if controller_mode:
+                controllers[0].rumble(1,0,250)
 
     def get_input(self):
 
@@ -102,7 +122,7 @@ class Tank(pygame.sprite.Sprite):
             if keys[pygame.K_d]:
                 self.turn_turret('neg')
             if keys[pygame.K_SPACE]:
-                self.turret.shoot()
+                self.shoot()
 
         # # turret
         # mouse_cursor = pygame.mouse.get_pos()
@@ -129,7 +149,8 @@ class Tank(pygame.sprite.Sprite):
         #         self.turret.shoot()   
 
 
-class AiTank(Tank):
+class TankRamdom(Tank):
+    """A tank AI doing random actions"""
 
     def __init__(self, pos):
         super().__init__(pos)
@@ -154,6 +175,25 @@ class AiTank(Tank):
             action[0]()
 
 
+class AiTank(Tank):
+    
+    def __init__(self, group_turret, group_projectiles, pos, orientation, ai):
+        super().__init__(group_turret, group_projectiles, pos, orientation)
+
+        self.ai = ai
+
+    def get_input(self):
+        
+        sensors = self.sensor()
+
+        # self.play(sensors)
+
+    def sensor(self):
+
+        x, y = self.rect.center
+        return [x, y]
+
+
 class Turret(pygame.sprite.Sprite):
 
     def __init__(self, pos, vector:pygame.math.Vector2):
@@ -168,8 +208,6 @@ class Turret(pygame.sprite.Sprite):
 
         self.lenght = 50
 
-        self.timer = Timer(0.5)
-
     def update(self, pos):
 
         self.rect.center = pos
@@ -177,19 +215,9 @@ class Turret(pygame.sprite.Sprite):
 
     def animation(self):
 
-        rotation = self.vector.angle_to(self.vector_base)
+        rotation = self.vector.angle_to(pygame.math.Vector2(-1,0))
         self.image = pygame.transform.rotate(self.image_source, rotation)
         self.rect = self.image.get_frect(center=self.rect.center)        
-
-    def shoot(self):
-        if self.timer.check():
-            spawn_point = (
-                self.rect.centerx + self.vector.x * self.lenght,
-                self.rect.centery + self.vector.y * self.lenght)
-            group_projectiles.add(Bullet(spawn_point, self.vector))
-
-            if controller_mode:
-                controllers[0].rumble(1,0,250)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -200,8 +228,6 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.Surface((10,10))
         self.image.fill("red")
         self.rect = self.image.get_frect(center=pos)
-
-        group_projectiles.add(self)
 
         self.vector = pygame.math.Vector2(vector)
         self.speed = 10
@@ -226,9 +252,61 @@ class Timer():
         return False
 
 
-group_tank = pygame.sprite.Group()
-group_turret = pygame.sprite.Group()
-group_projectiles = pygame.sprite.Group()
+class Game:
+
+    def __init__(self, score_to_win=10):
+        
+        # Prepare sprite groups
+        self.group_tank = pygame.sprite.Group()
+        self.group_turret = pygame.sprite.Group()
+        self.group_projectiles = pygame.sprite.Group()
+
+        # Game parameters
+        self.score_to_win = score_to_win
+
+        # Game fix parameters
+        self.tank_00_spawn = (screen.get_width()*(4/5), screen.get_height()*(4/5))
+        self.tank_01_spawn = (screen.get_width()/5, screen.get_height()/5)
+
+        # Prepare tanks with AIs
+        self.tank_00 = Tank(self.group_turret, self.group_projectiles, self.tank_00_spawn, pygame.math.Vector2(-1,-1))
+        self.tank_01 = AiTank(self.group_turret, self.group_projectiles, self.tank_01_spawn, pygame.math.Vector2(1,1), ai=0)
+        self.group_tank.add([self.tank_00, self.tank_01])
+
+    def reset_tanks(self):
+        self.tank_00.rect.center = self.tank_00_spawn
+        self.tank_01.rect.center = self.tank_01_spawn
+
+    def run(self):
+        
+        self.group_tank.update()
+        self.group_projectiles.update()
+
+        for tank in self.group_tank.sprites():
+            if tank.rect.x < 0:
+                tank.rect.x = 0
+            elif tank.rect.x > screen.get_width() - tank.rect.width:
+                tank.rect.x = screen.get_width() - tank.rect.width
+            if tank.rect.y < 0:
+                tank.rect.y = 0
+            elif tank.rect.y > screen.get_height() - tank.rect.height:
+                tank.rect.y = screen.get_height() - tank.rect.height
+
+        for projectile in self.group_projectiles.sprites():
+            if projectile.rect.centerx < 0:
+                projectile.kill()
+            elif projectile.rect.centerx > screen.get_width():
+                projectile.kill()
+            if projectile.rect.centery < 0:
+                projectile.kill()
+            elif projectile.rect.centery > screen.get_height():
+                projectile.kill()
+
+        self.group_tank.draw(screen)
+        self.group_turret.draw(screen)
+        self.group_projectiles.draw(screen)
+
+game = Game()
 
 while True:
 
@@ -238,37 +316,11 @@ while True:
             exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_s:
-                group_tank.add(AiTank((screen.get_width()/5, screen.get_height()/5)))
-                group_tank.add(Tank((screen.get_width()*(4/5), screen.get_height()*(4/5))))
+                game.reset_tanks()
 
     screen.fill("grey")
 
-    group_tank.update()
-    group_projectiles.update()
-        
-    for tank in group_tank.sprites():
-        if tank.rect.x < 0:
-            tank.rect.x = 0
-        elif tank.rect.x > screen.get_width() - tank.rect.width:
-            tank.rect.x = screen.get_width() - tank.rect.width
-        if tank.rect.y < 0:
-            tank.rect.y = 0
-        elif tank.rect.y > screen.get_height() - tank.rect.height:
-            tank.rect.y = screen.get_height() - tank.rect.height
-
-    for projectile in group_projectiles.sprites():
-        if projectile.rect.centerx < 0:
-            projectile.kill()
-        elif projectile.rect.centerx > screen.get_width():
-            projectile.kill()
-        if projectile.rect.centery < 0:
-            projectile.kill()
-        elif projectile.rect.centery > screen.get_height():
-            projectile.kill()
-
-    group_tank.draw(screen)
-    group_turret.draw(screen)
-    group_projectiles.draw(screen)
+    game.run()    
 
     pygame.display.flip()
 
