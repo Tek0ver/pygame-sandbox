@@ -1,13 +1,14 @@
 from typing import Any
 import pygame
 from sys import exit
-from time import time
 import pygame._sdl2.controller
 from random import choice
 
 pygame.init()
 
 clock = pygame.Clock()
+
+FPS = 60
 
 screen = pygame.display.set_mode((1000,1000))
 
@@ -53,6 +54,7 @@ class Tank(pygame.sprite.Sprite):
 
     def update(self):
 
+        self.timer.update()
         self.get_input()
         self.turret.update(self.rect.center)
         self.animation()
@@ -238,16 +240,23 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Timer():
+    """Frame dependent timer"""
 
     def __init__(self, delay):
+        """delay : time in seconds if the game runs at 60fps"""
 
-        self.delay = delay
-        self.last_call = 0
+        self.delay = delay*60
+        self.tick = 0
+
+    def update(self):
+
+        print(self.tick)
+        self.tick += 1
 
     def check(self):
 
-        if time() - self.last_call >= self.delay:
-            self.last_call = time()
+        if self.tick >= self.delay:
+            self.tick = 0
             return True
         return False
 
@@ -324,5 +333,5 @@ while True:
 
     pygame.display.flip()
 
-    clock.tick(60)
+    clock.tick(FPS)
     # print(clock.get_fps())
