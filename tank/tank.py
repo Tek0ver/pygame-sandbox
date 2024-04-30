@@ -250,7 +250,6 @@ class Timer():
 
     def update(self):
 
-        print(self.tick)
         self.tick += 1
 
     def check(self):
@@ -264,11 +263,6 @@ class Timer():
 class Game:
 
     def __init__(self, score_to_win=10):
-        
-        # Prepare sprite groups
-        self.group_tank = pygame.sprite.Group()
-        self.group_turret = pygame.sprite.Group()
-        self.group_projectiles = pygame.sprite.Group()
 
         # Game parameters
         self.score_to_win = score_to_win
@@ -277,14 +271,19 @@ class Game:
         self.tank_00_spawn = (screen.get_width()*(4/5), screen.get_height()*(4/5))
         self.tank_01_spawn = (screen.get_width()/5, screen.get_height()/5)
 
-        # Prepare tanks with AIs
+        self.reset_tanks()
+
+    def reset_tanks(self):
+
+        # Prepare sprite groups
+        self.group_tank = pygame.sprite.Group()
+        self.group_turret = pygame.sprite.Group()
+        self.group_projectiles = pygame.sprite.Group()
+
+        # Prepare tanks
         self.tank_00 = Tank(self.group_turret, self.group_projectiles, self.tank_00_spawn, pygame.math.Vector2(-1,-1))
         self.tank_01 = AiTank(self.group_turret, self.group_projectiles, self.tank_01_spawn, pygame.math.Vector2(1,1), ai=0)
         self.group_tank.add([self.tank_00, self.tank_01])
-
-    def reset_tanks(self):
-        self.tank_00.rect.center = self.tank_00_spawn
-        self.tank_01.rect.center = self.tank_01_spawn
 
     def run(self):
         
